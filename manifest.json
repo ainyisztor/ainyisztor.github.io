@@ -1,0 +1,20 @@
+{
+ "name": "Video feldolgozó dashboard",
+ "short_name": "Video dashboard",
+ "start_url": "./",
+ "display": "standalone",
+ "background_color": "#0E1418",
+ "theme_color": "#172028",
+ "icons": [
+  {
+   "src": "ikon-180.png",
+   "sizes": "180x180",
+   "type": "image/png"
+  },
+  {
+   "src": "ikon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  }
+ ]
+}
