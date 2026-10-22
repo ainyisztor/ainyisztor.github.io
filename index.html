@@ -9,42 +9,452 @@
 <meta name="apple-mobile-web-app-title" content="Video dashboard">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="ikon-180.png">
-<link rel="icon" href="ikon-180.png">
 <meta name="robots" content="noindex">
 <title>Video feldolgozó dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
 <style>
-:root{--alap:#EEF1F4;--lap:#FFFFFF;--tinta:#121A22;--halk:#4F5D6B;--vonal:#D9DFE5;--fut:#1D6FB8}
-@media (prefers-color-scheme: dark){:root{--alap:#0E1418;--lap:#172028;--tinta:#EEF2F5;--halk:#A9B6C2;--vonal:#2C3843;--fut:#5FA8EA;color-scheme:dark}}
-body{margin:0;background:var(--alap);color:var(--tinta);font:400 17px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;display:grid;place-items:center;padding:16px;box-sizing:border-box}
-.doboz{background:var(--lap);border:1px solid var(--vonal);border-radius:12px;padding:16px;display:grid;gap:10px;width:min(520px,100%)}
-input{min-height:44px;border-radius:8px;border:1px solid var(--vonal);padding:0 12px;font-size:16px;background:var(--lap);color:var(--tinta)}
-button{min-height:44px;border-radius:10px;border:0;background:var(--fut);color:#fff;font-weight:600;font-size:16px}
-.halk{color:var(--halk);font-size:14px}
+/* Elrendezés: fix állapotsáv felül (lámpa + frissesség), alatta előbb ami a te figyelmed kéri (piros, sárga),
+   aztán a futó munka és a haladás; legalul összecsukva a megoldott problémák tudástára. iPaden két oszlop. */
+:root{
+  --alap:#EEF1F4; --lap:#FFFFFF; --lap2:#F6F8FA; --vonal:#D9DFE5;
+  --tinta:#121A22; --halk:#4F5D6B;           /* kiegészítő szöveg: 4.5:1 felett mindkét témában */
+  --fut:#1D6FB8; --fut-h:#E3EEF8;            /* haladás: jégkék, nem jelzőszín */
+  --piros:#B42318; --piros-h:#FDECEA;
+  --sarga:#9A6700; --sarga-h:#FFF4D6;
+  --zold:#1E7B4A; --zold-h:#E6F4EC;
+  --display:"Barlow Condensed",system-ui,sans-serif;
+  --szoveg:Barlow,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --alap:#0E1418; --lap:#172028; --lap2:#1D2731; --vonal:#2C3843;
+  --tinta:#EEF2F5; --halk:#A9B6C2;
+  --fut:#5FA8EA; --fut-h:#1A2C3D;
+  --piros:#FF7B6E; --piros-h:#3A1E1B;
+  --sarga:#F2BE4A; --sarga-h:#352A12;
+  --zold:#5CCB8E; --zold-h:#16301F; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --alap:#0E1418; --lap:#172028; --lap2:#1D2731; --vonal:#2C3843;
+  --tinta:#EEF2F5; --halk:#A9B6C2;
+  --fut:#5FA8EA; --fut-h:#1A2C3D;
+  --piros:#FF7B6E; --piros-h:#3A1E1B;
+  --sarga:#F2BE4A; --sarga-h:#352A12;
+  --zold:#5CCB8E; --zold-h:#16301F; color-scheme:dark }
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--alap);color:var(--tinta);font:400 17px/1.45 var(--szoveg)}
+button,textarea{font:inherit}
+.num{font-variant-numeric:tabular-nums}
+.halk{color:var(--halk)} .kicsi{font-size:14px;line-height:1.4}
+
+/* ===== felső állapotsáv ===== */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--lap)}
+.fej{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--lap);border-bottom:1px solid var(--vonal)}
+.fej-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:12px;
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.lampa{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff}
+.lampa svg{width:22px;height:22px}
+.lampa.piros{background:var(--piros)} .lampa.sarga{background:var(--sarga)} .lampa.zold{background:var(--zold)} .lampa.szurke{background:var(--halk)}
+.fej-szoveg{min-width:0;flex:1}
+.fej-cim{font:700 22px/1.1 var(--display);letter-spacing:.01em}
+.fej-al{font-size:14px;color:var(--halk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fej-al b{color:var(--tinta);font-weight:600}
+.gomb{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--vonal);background:var(--lap);color:var(--tinta);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.gomb:hover{background:var(--lap2)}
+.gomb.fo{background:var(--fut);border-color:var(--fut);color:#fff}
+.gomb.veszely{color:var(--piros);border-color:var(--piros)}
+.gomb.megerosit{background:var(--piros);border-color:var(--piros);color:#fff}
+.gomb[disabled]{opacity:.5;cursor:default}
+:focus-visible{outline:3px solid var(--fut);outline-offset:2px}
+
+.oldal{max-width:1180px;margin:0 auto;display:grid;gap:22px;
+  padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.osszegzes{font:600 19px/1.35 var(--szoveg)}
+.jelek{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;color:var(--halk)}
+.jelek span{display:inline-flex;align-items:center;gap:6px}
+.racs{display:grid;gap:22px}
+@media (min-width:900px){.racs{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);align-items:start}}
+.oszlop{display:grid;gap:22px;min-width:0}
+.blokk{display:grid;gap:10px;min-width:0}
+h2{margin:0;font:700 24px/1.15 var(--display);letter-spacing:.01em;display:flex;align-items:baseline;gap:10px}
+h2 .db{font:600 15px/1 var(--szoveg);color:var(--halk)}
+
+/* ===== kártya: egy forma minden állapotra ===== */
+.kartya{background:var(--lap);border:1px solid var(--vonal);border-left:6px solid var(--vonal);border-radius:var(--r);padding:14px 16px;display:grid;gap:8px;min-width:0}
+.kartya.piros{border-left-color:var(--piros)} .kartya.sarga{border-left-color:var(--sarga)} .kartya.zold{border-left-color:var(--zold)}
+.k-fej{display:flex;gap:10px;align-items:flex-start}
+.ikon{flex:none;width:22px;height:22px;margin-top:2px}
+.piros .ikon{color:var(--piros)} .sarga .ikon{color:var(--sarga)} .zold .ikon{color:var(--zold)}
+.k-cim{font-weight:600;font-size:18px;line-height:1.3;min-width:0;overflow-wrap:anywhere}
+.k-ido{font-size:14px;color:var(--halk)}
+.k-reszlet{font-size:15px;color:var(--halk);overflow-wrap:anywhere}
+.lepesek{display:grid;gap:6px;background:var(--lap2);border-radius:8px;padding:10px 12px;font-size:15px}
+.lepesek b{display:block;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--halk);font-weight:600}
+.k-gombok{display:flex;flex-wrap:wrap;gap:8px}
+.cimke{display:inline-block;font-size:13px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--lap2);color:var(--halk)}
+.cimke.piros{background:var(--piros-h);color:var(--piros)} .cimke.sarga{background:var(--sarga-h);color:var(--sarga)} .cimke.zold{background:var(--zold-h);color:var(--zold)}
+.vissza{font-size:14px;color:var(--halk)}
+
+/* döntés */
+.dontes{background:var(--piros-h);border:1px solid var(--piros);border-left-width:6px}
+.dontes textarea{width:100%;min-height:64px;border-radius:8px;border:1px solid var(--vonal);background:var(--lap);color:var(--tinta);padding:8px 10px;font-size:16px;resize:vertical}
+.dontes .gomb.fo{background:var(--piros);border-color:var(--piros)}
+
+/* futó sorok */
+.sor{background:var(--lap);border:1px solid var(--vonal);border-radius:var(--r);padding:14px 16px;display:grid;gap:8px;min-width:0}
+.sor-fej{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.sor-nev{font-size:14px;color:var(--halk);font-weight:600;letter-spacing:.02em}
+.sor-mi{font:600 19px/1.25 var(--szoveg);overflow-wrap:anywhere}
+.csik{height:10px;border-radius:6px;background:var(--fut-h);overflow:hidden}
+.csik i{display:block;height:100%;background:var(--fut);border-radius:6px}
+.csik.all i{background:var(--sarga)}
+@media (prefers-reduced-motion:no-preference){.csik i{transition:width .6s ease}}
+.sor-adat{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:15px;color:var(--halk)}
+.sor-adat b{color:var(--tinta);font-weight:600}
+details>summary{cursor:pointer;list-style:none;color:var(--fut);font-weight:600;font-size:15px;min-height:32px;display:flex;align-items:center}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";width:18px;display:inline-block}
+details[open]>summary::before{content:"−"}
+.lista{display:grid;gap:0;margin:0;padding:0;list-style:none}
+.lista li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--vonal);font-size:15px;min-width:0}
+.lista li:first-child{border-top:0}
+.lista .n{min-width:0;overflow-wrap:anywhere}
+.gomb.kis{min-height:36px;padding:0 12px;font-size:14px}
+
+/* haladás */
+.proj{background:var(--lap);border:1px solid var(--vonal);border-radius:var(--r);padding:14px 16px;display:grid;gap:10px}
+.proj-fej{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.proj-fej h3{margin:0;font:700 20px/1.2 var(--display)}
+.proj-pct{font:700 28px/1 var(--display)}
+.csop{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:15px}
+.csop .csik{grid-column:1/-1;height:6px}
+
+/* kész filmek, gép */
+.vid{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 0;border-top:1px solid var(--vonal);font-size:15px}
+.vid:first-child{border-top:0}
+.vid .h{font-variant-numeric:tabular-nums;font-weight:600}
+.vid .m{grid-column:1/-1;font-size:14px;color:var(--halk)}
+.panel{background:var(--lap);border:1px solid var(--vonal);border-radius:var(--r);padding:12px 16px;min-width:0}
+.gep{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:15px}
+.gep b{font-weight:600}
+.lemez{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:15px;margin-top:10px}
+.lemez .csik{grid-column:1/-1;height:6px}
+.uzenet textarea{width:100%;min-height:84px;border-radius:8px;border:1px solid var(--vonal);background:var(--lap);color:var(--tinta);padding:10px 12px;font-size:16px;resize:vertical}
+.uzenet .k-gombok{margin-top:8px;justify-content:space-between;align-items:center}
+
+/* tudástár */
+.tudas{display:grid;gap:10px}
+@media (min-width:900px){.tudas{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tudas .kartya{background:var(--lap)}
+.sorok3{display:grid;gap:6px;font-size:15px}
+.sorok3 b{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--halk);font-weight:600;display:block}
+
+.uzen{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20;background:var(--tinta);color:var(--lap);padding:12px 18px;border-radius:10px;font-size:15px;max-width:calc(100% - 32px)}
+.kulcs{background:var(--lap);border:1px solid var(--vonal);border-radius:var(--r);padding:16px;display:grid;gap:10px;max-width:520px}
+.kulcs input{min-height:44px;border-radius:8px;border:1px solid var(--vonal);padding:0 12px;font-size:16px;background:var(--lap);color:var(--tinta)}
+.ures{color:var(--halk);font-size:15px}
+.vaz{height:96px;border-radius:var(--r);background:var(--lap);border:1px solid var(--vonal)}
 </style>
 </head>
 <body>
-<div id="allapot" class="halk">Betöltés…</div>
+<header class="fej"><div class="fej-in">
+  <div class="lampa szurke" id="lampa" aria-hidden="true"></div>
+  <div class="fej-szoveg"><div class="fej-cim">Video feldolgozó</div><div class="fej-al" id="frissesseg">Betöltés…</div></div>
+  <button class="gomb" type="button" id="frissit" aria-label="Frissítés most">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Frissítés</button>
+</div></header>
+<main class="oldal" id="app">
+  <div class="vaz"></div><div class="vaz"></div><div class="vaz"></div>
+</main>
+<div class="uzen" id="uzen" hidden></div>
 <script>
-// Betöltő (okt. 22.): a dashboard oldalát mindig a „Stelvio fogadó”-tól kéri (a gép tölti fel oda),
-// így a javítások maguktól megjelennek itt is. A legutóbbi változatot a készülék megjegyzi, ezért azonnal nyílik.
-var F = 'https://script.google.com/macros/s/AKfycby7Q96vFrG9B0LGjMWPfC2TBTJ0DVBYXY3yWj0lofNfWifKpB419im_tYRepG709ntM/exec';
-function t(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
-var m = location.hash.match(/^#k=([\w\-]{16,})$/); if (m) t('vfd_kulcs', m[1]);
-var k = t('vfd_kulcs'), c = t('vfd_oldal'), mutatva = false;
-function mutat(h) { mutatva = true; document.open(); document.write(h); document.close(); }
-function kulcsKer(uzenet) {
-  document.getElementById('allapot').outerHTML = '<div class="doboz"><b>Add meg a dashboard-kulcsot</b><span class="halk">' + (uzenet || 'Egyszer kell, ez a készülék megjegyzi. Claude-tól kapod.') + '</span>' +
-    '<input id="kulcs" autocomplete="off" spellcheck="false" placeholder="kulcs"><button type="button" id="ment">Mentés</button></div>';
-  document.getElementById('ment').onclick = function () { t('vfd_kulcs', document.getElementById('kulcs').value.trim()); t('vfd_oldal', ''); location.reload(); };
+// ===== Video feldolgozó dashboard v23 (okt. 22., Józsi: piros–sárga–zöld, „Ezt fogom tenni / Hol járok”, tudástár, beavatkozás) =====
+// Két helyen fut ugyanez az oldal: (1) a Google Apps Script webalkalmazásban (google.script.run), (2) önálló tárhelyen
+// (pl. GitHub Pages) – ott a „Stelvio fogadó”-tól kéri az adatot a készüléken eltárolt dashboard-kulccsal.
+var FOGADO = /\.github\.io$/.test(location.hostname) ? 'https://script.google.com/macros/s/AKfycby7Q96vFrG9B0LGjMWPfC2TBTJ0DVBYXY3yWj0lofNfWifKpB419im_tYRepG709ntM/exec' : '';   // önálló tárhelyen (GitHub Pages) a „Stelvio fogadó”-tól kér
+var MINTA = null; /*MINTA*/
+
+var ALAP = {
+  nema:'Ha a gép magától visszajön, a futtató 10 percen belül folytatja. Ha 1 órán belül nem jön vissza, távolról nem tudom bekapcsolni: nézd meg, megy-e. Utána az eseménynaplóból kiderítem az okát.',
+  ujraind:'Az eseménynaplóból kiderítem az okát (lefagyás, áram, frissítés), és beállítom a megelőzést. A félbemaradt feladatok maguktól újraindulnak.',
+  hiba:'A naplóból megkeresem, miért bukott el, kijavítom a kódot vagy a bemenetet, és visszateszem a sorba.',
+  hely:'Összeírom, mi vihető át vagy szabadítható fel, és döntésre eléd teszem. Köztes fájlt nem törlök; 30 GB alatt új feladat nem indul.',
+  memoria:'A memóriaőr 2 perc után leállítja a legutóbb indult nehéz feladatot, és az magától visszakerül a sorba.',
+  figyelem:'Átnézem, és ide írom, mit találtam.',
+  ell:'Megnézem, a film hibás-e vagy csak az ellenőrzés tévedett, és aszerint javítom. Addig ne töltsd fel sehova.',
+  akad:'Megnézem a naplóban, vár-e valamire (zár, memória) vagy elakadt; ha elakadt, megszakítom és újraindítom.',
+  korai:'Figyelem; ha rosszabb lesz, beavatkozom, mielőtt baj lenne.'
+};
+var HO=['jan.','febr.','márc.','ápr.','máj.','jún.','júl.','aug.','szept.','okt.','nov.','dec.'];
+var REM={elore:'Előre vétel',megszakit:'Megszakítás',ujra:'Újra sorba',felre:'Félretétel',vissza:'Vissza a sorba',szunet:'Szünet',folytat:'Folytatás',uzenet:'Üzenet Claude-nak'};
+var SOR_NEV={feladatok:'1. sor',feladatok2:'2. sor (2. videókártya)',feladatok3:'3. sor (filmek)'};
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function ido(s){var m=String(s||'').match(/(\d{4})-(\d\d)-(\d\d)[ T](\d\d):(\d\d)(?::(\d\d))?/);return m?new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0)):null;}
+function idoMD(s){var m=String(s||'').match(/^(\d\d)-(\d\d) (\d\d):(\d\d)$/);if(!m)return null;var d=new Date();return new Date(d.getFullYear(),m[1]-1,+m[2],+m[3],+m[4]);}
+function ket(n){return String(n).padStart(2,'0');}
+function ora(d){return ket(d.getHours())+':'+ket(d.getMinutes());}
+function mikor(s){var d=s instanceof Date?s:(ido(s)||idoMD(s));if(!d)return esc(s||'');
+  var p=Math.round((Date.now()-d)/60000),ma=new Date(),t=new Date(ma);t.setDate(ma.getDate()-1);
+  if(p>=0&&p<1)return 'épp most ('+ora(d)+')';
+  if(p>=0&&p<60)return p+' perce ('+ora(d)+')';
+  if(d.toDateString()===ma.toDateString())return 'ma '+ora(d);
+  if(d.toDateString()===t.toDateString())return 'tegnap '+ora(d);
+  return HO[d.getMonth()]+' '+d.getDate()+'. '+ora(d);}
+function tartam(perc){perc=Math.max(0,Math.round(perc));if(perc<60)return perc+' perc';var o=Math.floor(perc/60),m=perc%60;return o+' óra'+(m?' '+m+' perc':'');}
+function hossz(mp){mp=Math.round(parseFloat(mp)||0);var p=Math.floor(mp/60),s=mp%60;return p+':'+ket(s);}
+function szam(x){return Number(String(x==null?'':x).replace(',','.'));}
+
+// emberi nevek a feladatnevek helyett
+var LEPES={terv:'tervezés',jelenet:'jelenetek',film:'napi film',osszefoglalo:'összefoglaló',facebook:'Facebook-változat',ell_kepek:'ellenőrző képek',kuldo_ujra:'dashboard-küldő'};
+function nev(n){
+  if(!n)return '';
+  n=String(n).replace(/^0_/,'');   // az „Előre vesz” gomb 0_ előtagot tesz a feladat elé
+  if(/^_ujraindulas/.test(n))return 'A gép újraindult';
+  var m=n.match(/^\d+[a-z]?_hm_nap_(\d\d)-(\d\d)_\d+_(.+)$/);if(m)return 'Horvát túra · '+HO[+m[1]-1]+' '+(+m[2])+'. · '+(LEPES[m[3]]||m[3].replace(/_/g,' '));
+  m=n.match(/hm_sdk_(\d\d)(\d\d)_(\d+)/);if(m)return 'Horvát túra · 8K mesterfájl · '+HO[+m[1]-1]+' '+(+m[2])+'., '+(+m[3])+'. felvétel';
+  m=n.match(/^\d+[a-z]?_hm_([a-z\-]+)_\d+(?:_\d+)?_(.+)$/);if(m)return 'Horvát túra · '+cap(m[1].replace(/-/g,' '))+' · '+(LEPES[m[2]]||m[2].replace(/_/g,' '));
+  m=n.match(/^\d+[a-z]?_([a-z]+)_(?:\d+_)?(film|facebook|jelenet|osszefoglalo)(?:_v(\d+))?$/);if(m)return 'Stelvio · '+cap(m[1])+' · '+LEPES[m[2]]+(m[3]?' (v'+m[3]+')':'');
+  if(/^dontes_/.test(n))return 'Döntés: '+n.replace(/^dontes_/,'').replace(/_/g,' ');
+  return cap(n.replace(/^\d+[a-z]?_(\d+_)?/,'').replace(/_/g,' '));
 }
-if (!k) kulcsKer();
-else {
-  if (c) setTimeout(function () { mutat(c); }, 0);
-  fetch(F + '?dk=' + encodeURIComponent(k) + '&mit=oldal&x=' + Date.now()).then(function (r) { return r.text(); }).then(function (h) {
-    if (!/<html/i.test(h)) { if (!mutatva) kulcsKer('A kulcs nem jó, vagy a szerver nem válaszolt. Próbáld újra.'); return; }
-    if (h !== c) { t('vfd_oldal', h); if (mutatva) location.reload(); else mutat(h); }
-  }).catch(function () { if (!mutatva) document.getElementById('allapot').textContent = 'Nincs kapcsolat. Próbáld újra kicsit később.'; });
+function cap(s){s=String(s||'');return s.charAt(0).toUpperCase()+s.slice(1);}
+function filmNev(f){return String(f||'').replace(/\.mp4$/,'').replace(/_4K/,'').replace(/_facebook/,' · Facebook').replace(/_v(\d+)$/,' (v$1)').replace(/^\d{4}-(\d\d)-(\d\d)_\d+-nap_/,function(_,a,b){return HO[+a-1]+' '+(+b)+'. · ';}).replace(/^\d{4}-(\d\d)-(\d\d)_\d+_/,function(_,a,b){return HO[+a-1]+' '+(+b)+'. · ';}).replace(/_(\d{4})-(\d\d)-(\d\d)/,'').replace(/_/g,' ').replace(/-/g,' ').replace(/(\d+)m\b/,'$1 m').replace(/osszefoglalo/gi,'összefoglaló').replace(/\but\b/g,'út').replace(/\bhid\b/g,'híd').replace(/\bfele\b/g,'felé');}
+
+var IKON={
+  piros:'<svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7v6M12 16.5v.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>',
+  sarga:'<svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 23 21H1z" fill="currentColor"/><path d="M12 9v5M12 17.2v.4" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  zold:'<svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m7 12.5 3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+var LAMPA={piros:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v8M12 18v.5"/></svg>',
+  sarga:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v8M12 18v.5"/></svg>',
+  zold:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 12.5 4 4L18 8"/></svg>',
+  szurke:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><path d="M12 8v4l3 2"/></svg>'};
+
+// ===== adat: tárolt pillanatkép azonnal, a friss a háttérben =====
+var A=null, KULD=[], VENDEG=false;   // KULD: elküldött, de még vissza nem igazolt utasítások ezen a készüléken
+function tarol(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function tolt(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function GAS(){return !!(window.google&&google.script&&google.script.run);}
+function dashKulcs(){var h=location.hash.match(/^#k=([\w\-]{16,})$/);if(h){tarol('vfd_kulcs',h[1]);}return tolt('vfd_kulcs')||'';}
+function hivas(fn,args,ok,hiba){
+  if(GAS()){var r=google.script.run.withSuccessHandler(ok).withFailureHandler(hiba||function(){});r[fn].apply(r,args||[]);return;}
+  if(!FOGADO){ok(MINTA?JSON.stringify(MINTA):null);return;}
+  var k=dashKulcs(); if(!k){ok('__KULCS__');return;}
+  var opt=fn==='adat'?null:{method:'POST',body:JSON.stringify({dk:k,fn:fn,args:args||[]})};
+  fetch(fn==='adat'?FOGADO+'?dk='+encodeURIComponent(k)+'&mit=allapot':FOGADO,opt||undefined).then(function(r){return r.text();}).then(function(t){ok(t==='tiltva'?'__KULCS__':t);}).catch(function(e){(hiba||function(){})(e);});
 }
+function betolt(kezi){
+  if(kezi){var b=document.getElementById('frissit');b.disabled=true;setTimeout(function(){b.disabled=false;},2500);}
+  hivas('adat',[],function(s){
+    if(s==='__KULCS__'){kulcsKeres();return;}
+    if(!s)return rajzol(A);
+    if(!GAS()&&s.charAt(0)!=='{'){kulcsKeres();return;}
+    try{A=JSON.parse(s);}catch(e){return;}
+    tarol('vfd_allapot',s); rajzol(A);
+  },function(e){jelez('Nem sikerült frissíteni: '+(e&&e.message||'nincs kapcsolat')+'. A legutóbbi állapotot látod.');});
+}
+function kulcsKeres(){
+  document.getElementById('app').innerHTML='<div class="kulcs"><b>Add meg a dashboard-kulcsot</b><span class="kicsi halk">Egyszer kell, ez a készülék megjegyzi. Claude-tól kapod.</span>'+
+   '<input id="kulcsmezo" autocomplete="off" spellcheck="false" placeholder="kulcs"><button class="gomb fo" type="button" onclick="tarol(\'vfd_kulcs\',document.getElementById(\'kulcsmezo\').value.trim());betolt()">Mentés</button></div>';
+}
+var uzenIdo=null;
+function jelez(t){var u=document.getElementById('uzen');u.textContent=t;u.hidden=false;clearTimeout(uzenIdo);uzenIdo=setTimeout(function(){u.hidden=true;},5000);}
+
+// ===== beavatkozás =====
+function utasit(parancs,cel,megj,gomb){
+  if(gomb&&gomb.dataset.ketlepes&&!gomb.classList.contains('megerosit')){
+    var eredeti=gomb.textContent;gomb.classList.add('megerosit');gomb.textContent='Biztos? Koppints újra';
+    setTimeout(function(){if(gomb.isConnected){gomb.classList.remove('megerosit');gomb.textContent=eredeti;}},4000);return;}
+  if(gomb)gomb.disabled=true;
+  KULD.push({parancs:parancs,cel:cel,ido:new Date()});rajzol(A);
+  hivas('utasit',[parancs,cel||'',megj||''],function(s){
+    try{if(s&&s.charAt(0)==='{'){A=JSON.parse(s);tarol('vfd_allapot',s);}}catch(e){}
+    jelez(REM[parancs]+' elküldve. A gép 2 percen belül végrehajtja.');rajzol(A);
+  },function(e){KULD.pop();jelez('Nem sikerült elküldeni: '+(e&&e.message||'nincs kapcsolat'));rajzol(A);});
+}
+function dontes(id,v){
+  var megj=(document.getElementById('m_'+id)||{}).value||'';
+  document.querySelectorAll('[data-dontes="'+id+'"] button').forEach(function(b){b.disabled=true;});
+  hivas('dont',[id,v,megj],function(s){try{if(s){A=JSON.parse(s);tarol('vfd_allapot',s);}}catch(e){}jelez('Döntés elküldve: '+(v==='mehet'?'Mehet':'Javítás kell'));rajzol(A);},
+    function(e){jelez('Nem sikerült menteni: '+(e&&e.message||'nincs kapcsolat'));rajzol(A);});
+}
+function uzenetKuld(){var t=document.getElementById('uzenet_claude');if(!t||!t.value.trim())return;var v=t.value.trim();t.value='';tarol('vfd_vazlat','');utasit('uzenet','',v);}
+function utasitasAllapot(a,parancs,cel){   // a legutóbbi ilyen utasítás sorsa
+  var kesz=(a.utasitasok||[]).filter(function(u){return u.parancs===parancs&&(u.cel||'')===(cel||'');}).slice(-1)[0];
+  var kint=((a.dontes_valaszok||{})._utasitasok||[]).filter(function(u){return u.parancs===parancs&&(u.cel||'')===(cel||'');}).slice(-1)[0];
+  var helyi=KULD.filter(function(u){return u.parancs===parancs&&(u.cel||'')===(cel||'');}).slice(-1)[0];
+  if(kint&&(!kesz||kesz.id!==kint.id))return '<span class="vissza">'+REM[parancs]+' elküldve '+esc(kint.ido.slice(11))+', a gép még nem vette át.</span>';
+  if(helyi&&(!kesz||(ido(kesz.ido)||0)<helyi.ido-60000))return '<span class="vissza">'+REM[parancs]+' küldés alatt…</span>';
+  if(kesz&&(Date.now()-(ido(kesz.ido)||0))<6*3600000)return '<span class="vissza">'+(kesz.allapot==='kesz'?'✓ ':'✕ ')+REM[parancs]+' '+esc(kesz.ido.slice(11))+': '+esc(kesz.uzenet)+'</span>';
+  return '';
+}
+function gombHTML(felirat,parancs,cel,opt){opt=opt||{};if(VENDEG)return '';
+  return '<button type="button" class="gomb'+(opt.kis?' kis':'')+(opt.veszely?' veszely':'')+'"'+(opt.ketlepes?' data-ketlepes="1"':'')+
+    ' onclick="utasit(\''+parancs+'\',\''+esc(cel)+'\',\'\',this)">'+felirat+'</button>';}
+
+// ===== problémák: egy modell minden figyelmeztetéshez =====
+function problemak(a){
+  var J=a.javitasok||{}, L=[], fr=ido(a.frissitve), kor=fr?(Date.now()-fr)/60000:999;
+  function add(p){var j=J[p.kulcs];
+    if(j&&j.allapot==='kész'&&!p.aktiv)return;          // megoldva: a tudástárba kerül
+    if(j&&j.allapot!=='kész'&&p.szint==='piros'&&!p.marad)p.szint='sarga';   // dolgozom rajta → sárga
+    p.terv=(j&&j.terv)||ALAP[p.tipus]||'';
+    p.hol=j?(j.hol||j.mit||''):(p.tipus==='hiba'&&p.szint==='sarga'?'Újra a sorban – figyelem, hogy most rendben lefut-e.':'Még nem kezdtem el. A következő Claude-munkamenet ezzel kezd.');
+    p.holIdo=j&&j.ido; p.kesz=j&&j.allapot==='kész'; L.push(p);}
+  if(kor>=30)add({kulcs:'nema',tipus:'nema',szint:'piros',aktiv:true,marad:true,cim:'A gép nem jelentkezik',reszlet:'Utolsó jelentés: '+mikor(a.frissitve)+'. Kikapcsolt, lefagyott vagy nincs internet.'});
+  if(a.ujraindulas_oka&&/váratlan/.test(a.ujraindulas_oka)&&fr&&ido(a.gep_indult)&&(fr-ido(a.gep_indult))<6*3600000)
+    add({kulcs:'ujraind_'+a.gep_indult,tipus:'ujraind',szint:'piros',cim:'A gép újraindult',reszlet:'Indult: '+mikor(a.gep_indult)+'. A feldolgozás magától folytatódott.',ido:a.gep_indult});
+  var mm=a.meres||{}; if(mm.memoria_szabad_GB!=null&&szam(mm.memoria_szabad_GB)<1.5)add({kulcs:'memoria',tipus:'memoria',szint:'piros',aktiv:true,cim:'Kevés a szabad memória',reszlet:esc(mm.memoria_szabad_GB)+' GB szabad. Ilyenkor a gép lefagyhat.'});
+  (a.lemezek||[]).forEach(function(l){if(!/Google/i.test(l.nev||'')&&l.ossz_GB&&l.szabad_GB<50)add({kulcs:'hely_'+l.betu,tipus:'hely',szint:'piros',aktiv:true,cim:'Kevés a hely: '+l.betu,reszlet:l.szabad_GB+' GB szabad.'});});
+  if(a.figyelem)add({kulcs:'figyelem',tipus:'figyelem',szint:'piros',aktiv:true,cim:'Figyelmeztetés a géptől',reszlet:String(a.figyelem).split(/\r?\n/).filter(Boolean).slice(1).join(' ')});
+  // hibás feladatok: egy kártya feladatonként, ismétlődés összevonva
+  var cs={}, sorban={};
+  (a.sorok||[]).forEach(function(s){if(s.fut)sorban[s.fut]=1;(s.kovetkezo||[]).forEach(function(k){sorban[k]=1;});});
+  (a.hibak||[]).forEach(function(h){var t=ido(h.ido);if(h.potolva||!t||(Date.now()-t)>48*3600000)return;var g=cs[h.nev]||(cs[h.nev]={db:0,ido:h.ido});g.db++;if(h.ido>g.ido)g.ido=h.ido;});
+  Object.keys(cs).forEach(function(n){var g=cs[n],bent=!!sorban[n];
+    add({kulcs:n,tipus:'hiba',szint:bent?'sarga':'piros',cim:(bent?'Újra fut: ':'Elbukott: ')+nev(n),ido:g.ido,
+      reszlet:(g.db>1?g.db+'× az elmúlt 48 órában, utoljára ':'')+mikor(g.ido)+(bent?' · újra a sorban':''),
+      gombok:bent?'':gombHTML('Újra sorba','ujra',n),visszaj:utasitasAllapot(a,'ujra',n)});});
+  (a.hibas_videok||[]).forEach(function(v){add({kulcs:'ell_'+v.fajl,tipus:'ell',szint:'piros',cim:'Hibás ellenőrzés: '+filmNev(v.fajl),ido:v.ido,reszlet:(v.okok||[]).join(' · ')});});
+  // beragadt haladás
+  (a.sorok||[]).forEach(function(s){var t=ido(s.halad_frissult);if(s.fut&&!s.var&&t&&(Date.now()-t)>60*60000)
+    add({kulcs:'akad_'+s.fut,tipus:'akad',szint:'sarga',aktiv:true,cim:'Nem halad: '+nev(s.fut),reszlet:(s.szazalek!=null?s.szazalek+'%-on áll, ':'')+tartam((Date.now()-t)/60000)+' óta nem mozdult ('+esc(s.mit||'')+').'});});
+  (a.korai||[]).forEach(function(k){add({kulcs:k.kulcs,tipus:'korai',szint:'sarga',aktiv:true,cim:k.cim,reszlet:k.szoveg,terv0:k.mit});});
+  L.forEach(function(p){if(p.tipus==='korai'&&!(J[p.kulcs]&&J[p.kulcs].terv))p.terv=p.terv0||ALAP.korai;});
+  return L.sort(function(x,y){return (x.szint==='piros'?0:1)-(y.szint==='piros'?0:1)||String(y.ido||'').localeCompare(String(x.ido||''));});
+}
+function kartya(p){
+  return '<article class="kartya '+p.szint+'"><div class="k-fej">'+IKON[p.szint]+'<div style="min-width:0;flex:1"><div class="k-cim">'+esc(p.cim)+'</div>'+
+    (p.reszlet?'<div class="k-reszlet">'+esc(p.reszlet)+'</div>':'')+'</div></div>'+
+    '<div class="lepesek"><div><b>Ezt fogom tenni</b>'+esc(p.terv)+'</div><div><b>Hol járok</b>'+esc(p.hol)+(p.holIdo?' <span class="halk">('+mikor(p.holIdo)+')</span>':'')+'</div></div>'+
+    ((p.gombok||p.visszaj)?'<div class="k-gombok">'+(p.gombok||'')+(p.visszaj||'')+'</div>':'')+'</article>';
+}
+function tudastar(a){
+  var J=a.javitasok||{};
+  return Object.keys(J).filter(function(k){return J[k]&&J[k].allapot==='kész';}).map(function(k){var j=J[k];return {k:k,j:j,t:idoMD(j.ido)||ido(j.ido)||new Date(0)};})
+    .sort(function(x,y){return y.t-x.t;}).map(function(x){var j=x.j;
+      return '<article class="kartya zold"><div class="k-fej">'+IKON.zold+'<div style="min-width:0;flex:1"><div class="k-cim">'+esc(j.cim||kulcsCim(x.k))+'</div><div class="k-ido">'+mikor(j.ido)+'</div></div></div>'+
+        '<div class="sorok3">'+(j.ok?'<div><b>Mi volt</b>'+esc(j.ok)+'</div>':'')+'<div><b>Mit tettünk</b>'+esc(j.mit||'')+'</div>'+(j.megelozes?'<div><b>Hogyan előzzük meg</b>'+esc(j.megelozes)+'</div>':'')+'</div></article>';});
+}
+function kulcsCim(k){
+  if(/^ujraind_/.test(k))return 'A gép újraindult ('+k.slice(8)+')';
+  if(/^ell_/.test(k))return 'Hibás ellenőrzés: '+filmNev(k.slice(4));
+  if(/^hely_/.test(k))return 'Kevés a hely: '+k.slice(5);
+  return {nema:'A gép nem jelentkezett',memoria:'Kevés memória',savszel:'A Drive-feltöltés elvitte a netet',gdrive_boritok:'A Drive-másoló újramásolta a borítókat'}[k]||('Elbukott: '+nev(k));
+}
+
+function tudasSzur(){var i=document.getElementById('tudas_kereso');if(!i)return;var q=i.value.trim().toLowerCase();
+  document.querySelectorAll('#tudas .kartya').forEach(function(k){k.hidden=!!q&&k.textContent.toLowerCase().indexOf(q)<0;});}
+// ===== rajzolás =====
+function rajzol(a){
+  var app=document.getElementById('app');
+  if(!a){app.innerHTML='<div class="kartya"><div class="k-cim">Még nincs adat</div><div class="k-reszlet">A gép bekapcsolás után legfeljebb 2 percen belül jelentkezik.</div></div>';return;}
+  VENDEG=!!a.vendeg;
+  var fr=ido(a.frissitve),kor=fr?(Date.now()-fr)/60000:999;
+  var P=problemak(a), val=a.dontes_valaszok||{}, nyitD=(a.varakozik||[]).filter(function(x){return !val[x.id];});
+  var piros=P.filter(function(p){return p.szint==='piros';}).length+nyitD.length, sarga=P.filter(function(p){return p.szint==='sarga';}).length;
+  var futo=(a.sorok||[]).filter(function(s){return s.fut;});
+  var szin=kor>=30?'piros':kor>=5?'szurke':piros?'piros':sarga?'sarga':'zold';
+  var l=document.getElementById('lampa');l.className='lampa '+szin;l.innerHTML=LAMPA[szin];
+  document.getElementById('frissesseg').innerHTML=(VENDEG?'<b>Vendég nézet</b> · ':'')+(kor>=5?'<b>Késik a jelentés</b> · ':'')+'Frissítve: <b>'+(fr?mikor(fr):'–')+'</b>'+(a.gep_indult?' · gép indult: '+mikor(a.gep_indult):'');
+  document.title=(piros?'● ':sarga?'▲ ':'')+'Video feldolgozó';
+
+  var h='';
+  // összegzés egy mondatban
+  var mondat=kor>=30?'A gép nem jelentkezik.':(nyitD.length&&!VENDEG)?(nyitD.length+' döntés vár rád.'):piros?(piros+' hiba vár beavatkozásra.'):sarga?(sarga+' dologra figyelek, de nincs teendőd.'):'Minden rendben, nincs teendőd.';
+  mondat+=futo.length?' '+futo.length+' feladat fut.':(kor<30?' Most nem fut feladat.':'');
+  var mv='';(a.terv||[]).forEach(function(p){if(p.becsult_vege&&p.becsult_vege>mv)mv=p.becsult_vege;});
+  if(mv)mondat+=' Minden kész kb. '+mikor(mv).replace(/^ma /,'ma ')+'.';
+  h+='<div class="blokk"><div class="osszegzes">'+esc(mondat)+'</div><div class="jelek"><span>'+IKON.piros.replace('class="ikon"','class="ikon" style="color:var(--piros);width:16px;height:16px;margin:0"')+'piros: döntésed vagy beavatkozás kell</span><span>'+IKON.sarga.replace('class="ikon"','class="ikon" style="color:var(--sarga);width:16px;height:16px;margin:0"')+'sárga: figyelek rá / dolgozom rajta</span><span>'+IKON.zold.replace('class="ikon"','class="ikon" style="color:var(--zold);width:16px;height:16px;margin:0"')+'zöld: megoldva, lent a tudástárban</span></div></div>';
+
+  // döntések
+  if(nyitD.length&&!VENDEG){h+='<section class="blokk" aria-live="polite"><h2>Döntésedre vár <span class="db">'+nyitD.length+'</span></h2>';
+    nyitD.forEach(function(x){var id=esc(x.id);
+      h+='<article class="kartya dontes" data-dontes="'+id+'"><div class="k-fej">'+IKON.piros.replace('class="ikon"','class="ikon" style="color:var(--piros)"')+'<div style="min-width:0;flex:1"><div class="k-cim">'+esc(x.cim)+'</div>'+(x.szoveg?'<div class="k-reszlet" style="color:var(--tinta)">'+esc(x.szoveg)+'</div>':'')+
+        '<div class="k-ido">Vár: '+mikor(x.letrehozva)+' óta</div></div></div>'+
+        '<textarea id="m_'+id+'" placeholder="Megjegyzés (nem kötelező) – például mit javítsak"></textarea>'+
+        '<div class="k-gombok"><button type="button" class="gomb fo" onclick="dontes(\''+id+'\',\'mehet\')">Mehet</button><button type="button" class="gomb" onclick="dontes(\''+id+'\',\'javitas\')">Javítás kell</button></div>'+
+        '<div class="vissza">'+(x.auto?'„Mehet” után a gép magától folytatja.':'„Mehet” után Claude a következő munkamenetben végrehajtja.')+'</div></article>';});
+    h+='</section>';}
+
+  var bal='',jobb='';
+  // figyelmeztetések
+  if(P.length){bal+='<section class="blokk"><h2>Figyelem <span class="db">'+(piros?piros+' piros':'')+(piros&&sarga?' · ':'')+(sarga?sarga+' sárga':'')+'</span></h2>'+P.map(kartya).join('')+'</section>';}
+
+  // most fut
+  bal+='<section class="blokk"><h2>Most fut</h2>';
+  (a.sorok||[]).forEach(function(s){
+    var t=ido(s.halad_frissult),all=s.fut&&!s.var&&t&&(Date.now()-t)>60*60000, pct=Math.max(0,Math.min(100,szam(s.szazalek)||0));
+    var kov=(s.kovetkezo||[]).filter(function(k){return k!==s.fut;});
+    var cimke=SOR_NEV[s.mappa]||s.nev;
+    bal+='<div class="sor"><div class="sor-fej"><span class="sor-nev">'+esc(cimke)+'</span>'+(s.szunetel?'<span class="cimke sarga">szünetel · '+s.szunetel+' feladat vár</span>':'')+'</div>';
+    if(s.fut){
+      bal+='<div class="sor-mi">'+esc(nev(s.fut))+'</div><div class="csik'+(all?' all':'')+'" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100"><i style="width:'+pct+'%"></i></div>'+
+        '<div class="sor-adat"><span><b class="num">'+pct+'%</b>'+(s.mit?' · '+esc(s.mit):'')+'</span>'+(s.varhato?'<span>kész kb. <b>'+esc(s.varhato)+'</b></span>':'')+
+        (s.var?'<span><span class="cimke">vár</span> '+esc(String(s.var).replace(/^várakozás:\s*/,'').replace('egy másik összeállítás fut (zár)','egyszerre csak egy nehéz összeállítás futhat, most egy másik fut'))+'</span>':'')+
+        (t&&!s.var?'<span>'+(all?'<b style="color:var(--sarga)">'+tartam((Date.now()-t)/60000)+' óta nem mozdul</b>':'haladás frissült '+mikor(t))+'</span>':'')+(s.vege&&kov.length?'<span>sor vége kb. <b>'+mikor(s.vege)+'</b></span>':'')+'</div>'+
+        '<div class="k-gombok">'+gombHTML('Megszakít','megszakit',s.fut,{veszely:1,ketlepes:1})+utasitasAllapot(a,'megszakit',s.fut)+'</div>';
+    } else bal+='<div class="ures">'+(kov.length?'Indulásra vár: '+esc(nev(kov[0])):'Üres, nincs feladat.')+'</div>';
+    if(kov.length)bal+='<details><summary>Következik ('+kov.length+')</summary><ul class="lista">'+kov.map(function(k,i){return '<li><span class="n">'+(/^0_/.test(k)?'<span class="cimke">előre véve</span> ':'')+esc(nev(k))+'<br>'+utasitasAllapot(a,'elore',k)+'</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+(i>0&&!/^0_/.test(k)?gombHTML('Előre','elore',k,{kis:1}):'')+gombHTML('Félretesz','felre',k,{kis:1,ketlepes:1})+'</span></li>';}).join('')+'</ul></details>';
+    if(s.mappa)bal+='<div class="k-gombok">'+(s.szunetel?gombHTML('Folytat','folytat',s.mappa,{kis:1}):((s.fut||kov.length)?gombHTML('Szünet a sorban','szunet',s.mappa,{kis:1,ketlepes:1}):''))+utasitasAllapot(a,s.szunetel?'folytat':'szunet',s.mappa)+'</div>';
+    bal+='</div>';
+  });
+  if((a.felre||[]).length)bal+='<details class="panel"><summary>Félretett feladatok ('+a.felre.length+')</summary><ul class="lista">'+a.felre.map(function(k){return '<li><span class="n">'+esc(nev(k))+'</span>'+gombHTML('Vissza a sorba','vissza',k,{kis:1})+'</li>';}).join('')+'</ul></details>';
+  bal+='</section>';
+
+  // haladás
+  var terv=a.terv||[];
+  if(terv.length){bal+='<section class="blokk"><h2>Haladás</h2>';
+    terv.forEach(function(p){var k=0,o=0;(p.csoportok||[]).forEach(function(c){if(c.tetelek&&c.tetelek.length){k+=c.kesz;o+=c.ossz;}});var pct=o?Math.round(k/o*100):0;
+      bal+='<div class="proj"><div class="proj-fej"><h3>'+esc(p.nev.replace(' v2',''))+'</h3><span class="proj-pct num">'+pct+'%</span></div><div class="csik"><i style="width:'+pct+'%"></i></div>'+
+        '<div class="kicsi halk">'+k+' / '+o+' film kész'+(p.becsult_vege&&k<o?' · becsült befejezés: <b style="color:var(--tinta)">'+mikor(p.becsult_vege)+'</b>':'')+(o&&k>=o?' · minden film kész':'')+'</div>'+
+        '<details><summary>Részletek</summary>'+(p.csoportok||[]).map(function(c){var cp=c.ossz?c.kesz/c.ossz*100:0;return '<div class="csop"><span>'+esc(c.nev)+'</span><span class="num">'+c.kesz+' / '+c.ossz+'</span><div class="csik"><i style="width:'+cp+'%"></i></div></div>';}).join('')+'</details></div>';});
+    bal+='</section>';}
+
+  // jobb oszlop: üzenet, Claude-ra vár, kész filmek, gép
+  var vazlat=tolt('vfd_vazlat')||'';
+  if(!VENDEG)jobb+='<section class="blokk uzenet"><h2>Üzenet Claude-nak</h2><div class="panel"><textarea id="uzenet_claude" placeholder="Például: a 05-28-as filmet vedd előre, vagy: nézd meg, miért lassú" oninput="tarol(\'vfd_vazlat\',this.value)">'+esc(vazlat)+'</textarea>'+
+    '<div class="k-gombok"><span class="kicsi halk">A következő Claude-munkamenet ezzel kezd.</span><button type="button" class="gomb fo" onclick="uzenetKuld()">Küldés</button></div>'+utasitasAllapot(a,'uzenet','')+'</div></section>';
+  var ct=a.claude_teendok||[];
+  if(ct.length&&!VENDEG)jobb+='<section class="blokk"><h2>Claude-ra vár <span class="db">'+ct.length+'</span></h2><div class="panel"><ul class="lista">'+ct.map(function(t){return '<li><span class="n"><b>'+esc(t.cim)+'</b>'+(t.megjegyzes?'<br><span class="kicsi halk">„'+esc(t.megjegyzes)+'”</span>':'')+'</span><span class="kicsi halk" style="white-space:nowrap">'+mikor(t.ido)+'</span></li>';}).join('')+'</ul></div></section>';
+  var kv=(a.kesz_videok||[]).filter(function(v){return v.allapot!=='proba';});
+  jobb+='<section class="blokk"><h2>Kész filmek</h2><div class="panel">'+(kv.length?'':'<div class="ures">Még nincs kész film.</div>');
+  function vs(v){var ok=(v.allapot||(/^rendben/.test(v.ellenorzes||'')?'rendben':'hiba'))==='rendben';
+    return '<div class="vid"><span>'+esc(filmNev(v.fajl))+'</span><span class="h">'+hossz(v.hossz_mp)+'</span><span class="m">'+mikor(v.ido)+' · '+(ok?'<span style="color:var(--zold)">ellenőrizve</span>':'<span style="color:var(--piros)">ellenőrzés hibás</span>')+'</span></div>';}
+  jobb+=kv.slice(0,6).map(vs).join('')+(kv.length>6?'<details><summary>Korábbiak ('+(kv.length-6)+')</summary>'+kv.slice(6).map(vs).join('')+'</details>':'')+'</div></section>';
+  var m=a.meres||{};
+  function gpu(s){var x=String(s||'').match(/^(\d+)\s*\((\d+)C/);return x?x[1]+'% · '+x[2]+' °C':'–';}
+  jobb+='<section class="blokk"><h2>A gép</h2><div class="panel"><div class="gep"><span>Processzor <b class="num">'+esc(m.cpu||'–')+'%</b></span><span>Szabad memória <b class="num">'+esc(String(m.memoria_szabad_GB||'–'))+' GB</b></span><span>1. kártya <b class="num">'+gpu(m.gpu0)+'</b></span><span>2. kártya <b class="num">'+gpu(m.gpu1)+'</b></span></div>';
+  (a.lemezek||[]).filter(function(l){return !/Google/i.test(l.nev||'')&&l.ossz_GB;}).forEach(function(l){var p=(1-l.szabad_GB/l.ossz_GB)*100,kev=l.szabad_GB<150;
+    jobb+='<div class="lemez"><span>'+esc(l.betu)+' '+esc({'C:':'belső SSD','D:':'munkalemez','E:':'külső SSD'}[l.betu]||l.nev||'')+'</span><span class="num"'+(kev?' style="color:var(--sarga);font-weight:600"':'')+'>'+l.szabad_GB+' GB szabad</span><div class="csik'+(kev?' all':'')+'"><i style="width:'+p+'%"></i></div></div>';});
+  var ev=(a.esemenyek||[]).slice().reverse();
+  if(ev.length)jobb+='<details><summary>Utolsó események</summary><ul class="lista">'+ev.map(function(e){var mi={kesz:'kész',hibas:'elbukott',ujraproba:'átmeneti hiba, újrapróba',leallitas:'leállítás',mehet:'mehet'}[e.mi]||e.mi;return '<li><span class="n">'+esc(nev(e.nev))+' – '+esc(mi)+'</span><span class="kicsi halk" style="white-space:nowrap">'+mikor(e.ido)+'</span></li>';}).join('')+'</ul></details>';
+  jobb+='</div></section>';
+
+  h+='<div class="racs"><div class="oszlop">'+bal+'</div><div class="oszlop">'+jobb+'</div></div>';
+  var T=tudastar(a);
+  h+='<section class="blokk"><details'+(T.length&&!P.length?'':'')+'><summary><h2 style="display:inline-flex">Megoldott problémák – tudástár <span class="db">'+T.length+'</span></h2></summary>'+(T.length>3?'<input id="tudas_kereso" type="search" placeholder="Keresés a megoldott problémák között" oninput="tudasSzur()" style="margin-top:10px;width:100%;min-height:44px;border-radius:8px;border:1px solid var(--vonal);padding:0 12px;font-size:16px;background:var(--lap);color:var(--tinta)">':'')+'<div class="tudas" id="tudas" style="margin-top:10px">'+(T.join('')||'<div class="ures">Még nincs megoldott probléma.</div>')+'</div></details></section>';
+
+  // a nyitott részeket és a begépelt szöveget megtartjuk
+  var nyitott=[].map.call(app.querySelectorAll('details'),function(d){return d.open;}), akt=document.activeElement&&document.activeElement.id, ert={};
+  app.querySelectorAll('textarea,input').forEach(function(t){if(t.id)ert[t.id]=t.value;});
+  app.innerHTML=h;
+  app.querySelectorAll('details').forEach(function(d,i){if(nyitott[i])d.open=true;});
+  app.querySelectorAll('textarea,input').forEach(function(t){if(t.id&&ert[t.id])t.value=ert[t.id];});
+  tudasSzur();
+  if(akt&&document.getElementById(akt))document.getElementById(akt).focus();
+}
+
+document.getElementById('frissit').addEventListener('click',function(){betolt(true);});
+(function(){var s=tolt('vfd_allapot');if(s){try{A=JSON.parse(s);rajzol(A);}catch(e){}}
+  if(!GAS()&&!FOGADO&&MINTA){A=MINTA;rajzol(A);}
+  betolt();})();
+setInterval(function(){if(!(document.activeElement&&/^(TEXTAREA|INPUT)$/.test(document.activeElement.tagName)))betolt();},60000);
+setInterval(function(){if(A&&!(document.activeElement&&/^(TEXTAREA|INPUT)$/.test(document.activeElement.tagName)))rajzol(A);},30000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)betolt();});
 </script>
 </body>
 </html>
