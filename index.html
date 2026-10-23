@@ -220,7 +220,7 @@ a.gomb{text-decoration:none}
 </main>
 <div class="uzen" id="uzen" hidden></div>
 <script>
-// ===== Video feldolgozó dashboard v28 (okt. 23.: kiküldött levelek; v27: YouTube – a gép maga tölt fel, Mehet-kártya, egyszeri engedély; v26: YouTube-feltöltés panel; v25: Tárhely – helyőr panel; v23 okt. 22.: piros–sárga–zöld, „Ezt fogom tenni / Hol járok”, tudástár, beavatkozás) =====
+// ===== Video feldolgozó dashboard v29 (okt. 23.: YouTube – törlendő régi videók; v28: kiküldött levelek; v27: YouTube – a gép maga tölt fel, Mehet-kártya, egyszeri engedély; v26: YouTube-feltöltés panel; v25: Tárhely – helyőr panel; v23 okt. 22.: piros–sárga–zöld, „Ezt fogom tenni / Hol járok”, tudástár, beavatkozás) =====
 // Két helyen fut ugyanez az oldal: (1) a Google Apps Script webalkalmazásban (google.script.run), (2) önálló tárhelyen
 // (pl. GitHub Pages) – ott a „Stelvio fogadó”-tól kéri az adatot a készüléken eltárolt dashboard-kulccsal.
 var FOGADO = /\.github\.io$/.test(location.hostname) ? 'https://script.google.com/macros/s/AKfycby7Q96vFrG9B0LGjMWPfC2TBTJ0DVBYXY3yWj0lofNfWifKpB419im_tYRepG709ntM/exec' : '';   // önálló tárhelyen (GitHub Pages) a „Stelvio fogadó”-tól kér
@@ -450,6 +450,10 @@ function youtube(a){
     if(elol.length)h+='<div>'+elol.map(sor).join('')+'</div>';
     if(kesz.length)h+='<details><summary>Fent van ('+kesz.length+')</summary>'+kesz.map(sor).join('')+'</details>';
     h+='</div>';});
+  var TR=Y.torlendo||[];
+  if(TR.length)h+='<div class="yt-lista"><div class="yt-fej"><span class="yt-nev">Törlendő a YouTube-ról</span><span class="yt-db">'+TR.length+'<small>régi videó</small></span></div>'+
+    '<div class="kicsi halk">Ezeket már kiváltotta az új változat, és kikerültek a listából. A végleges törlést te csinálod: Studio → a videó → ⋮ → Végleges törlés.</div>'+
+    TR.map(function(x){return '<div class="yt-vid"><span class="c">'+esc(String(x.helyett||x.id).replace(/^[^–]+ – /,''))+'<br><span class="kicsi halk">régi példány · '+esc(x.id)+'</span></span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><a class="gomb kis" href="'+esc(x.link)+'" target="_blank" rel="noopener">Megnyitás</a></span></div>';}).join('')+'</div>';
   return h+'</div></section>';
 }
 
