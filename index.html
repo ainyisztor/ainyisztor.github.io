@@ -101,6 +101,7 @@ h2 .db{font:600 15px/1 var(--szoveg);color:var(--halk)}
 .dontes{background:var(--piros-h);border:1px solid var(--piros);border-left-width:6px}
 .dontes textarea{width:100%;min-height:64px;border-radius:8px;border:1px solid var(--vonal);background:var(--lap);color:var(--tinta);padding:8px 10px;font-size:16px;resize:vertical}
 .dontes .gomb.fo{background:var(--piros);border-color:var(--piros)}
+.dontes .k-reszlet{white-space:pre-line}
 
 /* futó sorok */
 .sor{background:var(--lap);border:1px solid var(--vonal);border-radius:var(--r);padding:14px 16px;display:grid;gap:8px;min-width:0}
@@ -160,6 +161,24 @@ details[open]>summary::before{content:"−"}
 .munka b{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--halk);font-weight:600}
 .jelmagy{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--halk);margin-top:8px}
 .jelmagy i{display:inline-block;width:3px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+/* youtube (v26) */
+.yt-lista{display:grid;gap:8px;padding:12px 0;border-top:1px solid var(--vonal);min-width:0}
+.yt-lista:first-of-type{border-top:0;padding-top:4px}
+.yt-fej{display:flex;justify-content:space-between;align-items:baseline;gap:10px;min-width:0}
+.yt-nev{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.yt-db{font:700 22px/1 var(--display);font-variant-numeric:tabular-nums;white-space:nowrap} .yt-db small{font:600 14px/1 var(--szoveg);color:var(--halk);margin-left:3px}
+.yt-sav{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--lap2)}
+.yt-sav i{display:block;height:100%}
+.yt-sav .k{background:var(--zold)} .yt-sav .f{background:var(--fut)} .yt-sav .p{background:var(--sarga)} .yt-sav .h{background:var(--piros)}
+.yt-osszeg{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:14px;color:var(--halk)}
+.yt-osszeg b{color:var(--tinta);font-weight:600}
+.yt-vid{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--vonal);font-size:15px;min-width:0}
+.yt-vid:first-child{border-top:0}
+.yt-vid .c{min-width:0;overflow-wrap:anywhere}
+.yt-vid .m{grid-column:1/-1;font-size:13px;color:var(--halk)}
+.yt-vid .csik{grid-column:1/-1;height:6px}
+.cimke.fut{background:var(--fut-h);color:var(--fut)}
+a.gomb{text-decoration:none}
 .uzenet textarea{width:100%;min-height:84px;border-radius:8px;border:1px solid var(--vonal);background:var(--lap);color:var(--tinta);padding:10px 12px;font-size:16px;resize:vertical}
 .uzenet .k-gombok{margin-top:8px;justify-content:space-between;align-items:center}
 
@@ -189,7 +208,7 @@ details[open]>summary::before{content:"−"}
 </main>
 <div class="uzen" id="uzen" hidden></div>
 <script>
-// ===== Video feldolgozó dashboard v25 (okt. 23.: Tárhely – helyőr panel; v23 okt. 22.: piros–sárga–zöld, „Ezt fogom tenni / Hol járok”, tudástár, beavatkozás) =====
+// ===== Video feldolgozó dashboard v27 (okt. 23.: YouTube – a gép maga tölt fel, Mehet-kártya, egyszeri engedély; v26: YouTube-feltöltés panel; v25: Tárhely – helyőr panel; v23 okt. 22.: piros–sárga–zöld, „Ezt fogom tenni / Hol járok”, tudástár, beavatkozás) =====
 // Két helyen fut ugyanez az oldal: (1) a Google Apps Script webalkalmazásban (google.script.run), (2) önálló tárhelyen
 // (pl. GitHub Pages) – ott a „Stelvio fogadó”-tól kéri az adatot a készüléken eltárolt dashboard-kulccsal.
 var FOGADO = /\.github\.io$/.test(location.hostname) ? 'https://script.google.com/macros/s/AKfycby7Q96vFrG9B0LGjMWPfC2TBTJ0DVBYXY3yWj0lofNfWifKpB419im_tYRepG709ntM/exec' : '';   // önálló tárhelyen (GitHub Pages) a „Stelvio fogadó”-tól kér
@@ -207,7 +226,10 @@ var ALAP = {
   figyelem:'Átnézem, és ide írom, mit találtam.',
   ell:'Megnézem, a film hibás-e vagy csak az ellenőrzés tévedett, és aszerint javítom. Addig ne töltsd fel sehova.',
   akad:'Megnézem a naplóban, vár-e valamire (zár, memória) vagy elakadt; ha elakadt, megszakítom és újraindítom.',
-  korai:'Figyelem; ha rosszabb lesz, beavatkozom, mielőtt baj lenne.'
+  korai:'Figyelem; ha rosszabb lesz, beavatkozom, mielőtt baj lenne.',
+  ytjova:'Amint jóváhagyod (a YouTube-munkamenetben válaszolj), folytatom a feltöltést.',
+  ytengedely:'Ez egyszeri: a Google megkérdezi, feltölthet-e a gép a csatornádra. Utána nincs vele dolgod, a feltöltés magától megy.',
+  ythiba:'Megnézem, miért akadt el (hálózat, fájl, YouTube-korlát), és újra feltöltöm; a már fent lévő filmekhez nem nyúlok.'
 };
 var HO=['jan.','febr.','márc.','ápr.','máj.','jún.','júl.','aug.','szept.','okt.','nov.','dec.'];
 var REM={elore:'Előre vétel',megszakit:'Megszakítás',ujra:'Újra sorba',felre:'Félretétel',vissza:'Vissza a sorba',szunet:'Szünet',folytat:'Folytatás',uzenet:'Üzenet Claude-nak'};
@@ -358,6 +380,40 @@ function tarhely(a){
   return h+'</div></section>';
 }
 
+// ===== YouTube-feltöltés (v26) =====
+// A YouTube-munkamenet (MacBook) a Google Drive „_vezerlopult/youtube.json” fájlba írja az állapotot; a gépen futó átvevő
+// 2 percenként a javitasok.json „_youtube” kulcsába teszi. Állapotok: var | feltoltes | feldolgozas | kesz | hiba | jovahagyas.
+var YT_NEV={var:'vár',feltoltes:'feltöltés',feldolgozas:'a YouTube feldolgozza',kesz:'fent van',hiba:'hiba',jovahagyas:'jóváhagyásodra vár'};
+var YT_CIMKE={var:'',feltoltes:'fut',feldolgozas:'sarga',kesz:'zold',hiba:'piros',jovahagyas:'piros'};
+function ytAdat(a){var Y=(a.javitasok||{})._youtube;if(!Y||!Y.listak)return null;var t=ido(Y.frissitve);Y.kor=t?(Date.now()-t)/60000:9999;return Y;}
+function youtube(a){
+  var Y=ytAdat(a);
+  var h='<section class="blokk"><h2>YouTube <span class="db">'+(Y?'frissítve '+mikor(Y.frissitve):'feltöltés')+'</span></h2><div class="panel">';
+  if(!Y)return h+'<div class="ures">A YouTube-feltöltésről még nincs jelentés. Amint a feltöltő Claude-munkamenet először jelentkezik, itt látod listánként, mi van fent, mi tölt fel, és mi vár rád.</div></div></section>';
+  var ossz={var:0,feltoltes:0,feldolgozas:0,kesz:0,hiba:0,jovahagyas:0},fut=false;
+  Y.listak.forEach(function(L){(L.videok||[]).forEach(function(v){var s=YT_NEV[v.allapot]?v.allapot:'var';ossz[s]++;if(s==='feltoltes'||s==='feldolgozas')fut=true;});});
+  var all=(ossz.jovahagyas||ossz.hiba)?'piros':fut?'sarga':'zold';
+  var szov=(ossz.jovahagyas?ossz.jovahagyas+' tétel vár a jóváhagyásodra. ':'')+(ossz.hiba?ossz.hiba+' hiba. ':'')+(fut?(ossz.feltoltes?ossz.feltoltes+' film tölt fel'+(ossz.feldolgozas?', ':'. '):'')+(ossz.feldolgozas?ossz.feldolgozas+' filmet a YouTube dolgoz fel. ':''):'')+(!fut&&!ossz.jovahagyas&&!ossz.hiba?(ossz.var?'Most nem tölt fel semmi; '+ossz.var+' film vár feltöltésre.':'Minden film fent van.'):'');
+  if(fut&&Y.kor>180)szov+=' A feltöltő '+mikor(Y.frissitve)+' óta nem jelentett – lehet, hogy a Mac elaludt vagy bezárult a böngésző.';
+  h+='<div class="tar-allapot '+all+'">'+IKON[all]+'<span>'+esc(szov)+(Y.kovetkezo?' <span class="halk">Következő: '+esc(Y.kovetkezo)+'</span>':'')+'</span></div>';
+  Y.listak.forEach(function(L){var V=L.videok||[],n=V.length||1,c={var:0,feltoltes:0,feldolgozas:0,kesz:0,hiba:0,jovahagyas:0};
+    V.forEach(function(v){c[YT_NEV[v.allapot]?v.allapot:'var']++;});
+    function d(x,k){return x?'<i class="'+k+'" style="width:'+(x/n*100).toFixed(1)+'%"></i>':'';}
+    h+='<div class="yt-lista"><div class="yt-fej"><span class="yt-nev">'+esc(L.nev)+'</span><span class="yt-db">'+c.kesz+'<small>/ '+V.length+' fent</small></span></div>'+
+      '<div class="yt-sav" role="img" aria-label="'+esc(L.nev)+': '+c.kesz+' / '+V.length+' fent">'+d(c.kesz,'k')+d(c.feldolgozas,'p')+d(c.feltoltes,'f')+d(c.hiba+c.jovahagyas,'h')+'</div>'+
+      '<div class="yt-osszeg">'+(c.feltoltes?'<span><b>'+c.feltoltes+'</b> feltöltés</span>':'')+(c.feldolgozas?'<span><b>'+c.feldolgozas+'</b> feldolgozás</span>':'')+(c.var?'<span>'+c.var+' vár</span>':'')+(c.jovahagyas?'<span style="color:var(--piros)"><b>'+c.jovahagyas+'</b> jóváhagyásra</span>':'')+(c.hiba?'<span style="color:var(--piros)"><b>'+c.hiba+'</b> hiba</span>':'')+(L.lathatosag?'<span>'+esc(L.lathatosag)+'</span>':'')+'</div>'+
+      (L.link?'<div class="k-gombok"><a class="gomb kis" href="'+esc(L.link)+'" target="_blank" rel="noopener">Lista megnyitása</a></div>':'');
+    var elol=V.filter(function(v){return v.allapot!=='kesz';}), kesz=V.filter(function(v){return v.allapot==='kesz';});
+    function rov(c){c=String(c||'');var e=String(L.nev||'');return e&&c.indexOf(e+' – ')===0?c.slice(e.length+3):c;}   // a lista nevét nem ismételjük
+    function sor(v){var s=YT_NEV[v.allapot]?v.allapot:'var',p=Math.max(0,Math.min(100,szam(v.szazalek)||0));
+      return '<div class="yt-vid"><span class="c">'+(v.link?'<a href="'+esc(v.link)+'" target="_blank" rel="noopener" style="color:inherit">'+esc(rov(v.cim))+'</a>':esc(rov(v.cim)))+'</span><span class="cimke '+YT_CIMKE[s]+'">'+YT_NEV[s]+(s==='feltoltes'&&v.szazalek!=null?' '+p+'%':'')+'</span>'+
+        (s==='feltoltes'&&v.szazalek!=null?'<div class="csik"><i style="width:'+p+'%"></i></div>':'')+((v.megj||v.hossz)?'<span class="m">'+esc([v.hossz,v.megj].filter(Boolean).join(' · '))+'</span>':'')+'</div>';}
+    if(elol.length)h+='<div>'+elol.map(sor).join('')+'</div>';
+    if(kesz.length)h+='<details><summary>Fent van ('+kesz.length+')</summary>'+kesz.map(sor).join('')+'</details>';
+    h+='</div>';});
+  return h+'</div></section>';
+}
+
 // ===== problémák: egy modell minden figyelmeztetéshez =====
 function problemak(a){
   var J=a.javitasok||{}, L=[], fr=ido(a.frissitve), kor=fr?(Date.now()-fr)/60000:999;
@@ -394,6 +450,14 @@ function problemak(a){
   // beragadt haladás
   (a.sorok||[]).forEach(function(s){var t=ido(s.halad_frissult);if(s.fut&&!s.var&&t&&(Date.now()-t)>60*60000)
     add({kulcs:'akad_'+s.fut,tipus:'akad',szint:'sarga',aktiv:true,cim:'Nem halad: '+nev(s.fut),reszlet:(s.szazalek!=null?s.szazalek+'%-on áll, ':'')+tartam((Date.now()-t)/60000)+' óta nem mozdult ('+esc(s.mit||'')+').'});});
+  var YA=ytAdat(a);
+  if(YA&&YA.engedely)add({kulcs:'yt_engedely',tipus:'ytengedely',szint:'piros',aktiv:true,marad:true,cim:'YouTube: egyszeri engedély kell a feltöltéshez',
+    reszlet:YA.engedely.kod?('Nyisd meg a '+YA.engedely.url+' oldalt (telefonon is jó), lépj be a fő YouTube-fiókoddal (nyisztorj@gmail.com), és írd be ezt a kódot: '+YA.engedely.kod+(YA.engedely.lejar?' – a kód '+mikor(YA.engedely.lejar).replace(/^ma /,'')+'-ig érvényes, utána újat írok ide.':'')):'A gép a következő 10 percen belül kér egy kódot, és ide írja.',
+    hol0:YA.engedely.kod?'Várom, hogy beírd a kódot; utána a gép magától tölt fel, és többet nem kell engedélyezned.':'Kódot kérek a Google-tól.',
+    gombok:YA.engedely.kod?'<a class="gomb fo" href="'+esc(YA.engedely.url)+'" target="_blank" rel="noopener">Engedélyezés megnyitása</a>':''});
+  if(YA)YA.listak.forEach(function(L){(L.videok||[]).forEach(function(v){
+    if(v.allapot==='jovahagyas')add({kulcs:'yt_'+v.cim,tipus:'ytjova',szint:'piros',aktiv:true,marad:true,cim:'YouTube – jóváhagyásodra vár: '+v.cim,reszlet:(v.megj||'')+' ('+L.nev+')',hol0:'Várok a válaszodra a YouTube-munkamenetben; addig ezzel nem lépek tovább.'});
+    else if(v.allapot==='hiba')add({kulcs:'yt_'+v.cim,tipus:'ythiba',szint:'piros',aktiv:true,cim:'YouTube-feltöltési hiba: '+v.cim,reszlet:(v.megj||'')+' ('+L.nev+')',hol0:'A YouTube-munkamenet a következő körben újrapróbálja.'});});});
   (a.korai||[]).forEach(function(k){if(Hok&&/^hely_/.test(k.kulcs))return;add({kulcs:k.kulcs,tipus:'korai',szint:'sarga',aktiv:true,cim:k.cim,reszlet:k.szoveg,terv0:k.mit});});
   L.forEach(function(p){if(p.tipus==='korai'&&!(J[p.kulcs]&&J[p.kulcs].terv))p.terv=p.terv0||ALAP.korai;});
   return L.sort(function(x,y){return (x.szint==='piros'?0:1)-(y.szint==='piros'?0:1)||String(y.ido||'').localeCompare(String(x.ido||''));});
@@ -493,7 +557,7 @@ function rajzol(a){
     '<div class="k-gombok"><span class="kicsi halk">A következő Claude-munkamenet ezzel kezd.</span><button type="button" class="gomb fo" onclick="uzenetKuld()">Küldés</button></div>'+utasitasAllapot(a,'uzenet','')+'</div></section>';
   var ct=a.claude_teendok||[];
   if(ct.length&&!VENDEG)jobb+='<section class="blokk"><h2>Claude-ra vár <span class="db">'+ct.length+'</span></h2><div class="panel"><ul class="lista">'+ct.map(function(t){return '<li><span class="n"><b>'+esc(t.cim)+'</b>'+(t.megjegyzes?'<br><span class="kicsi halk">„'+esc(t.megjegyzes)+'”</span>':'')+'</span><span class="kicsi halk" style="white-space:nowrap">'+mikor(t.ido)+'</span></li>';}).join('')+'</ul></div></section>';
-  jobb=tarhely(a)+jobb;
+  jobb=tarhely(a)+youtube(a)+jobb;
   var kv=(a.kesz_videok||[]).filter(function(v){return v.allapot!=='proba';});
   jobb+='<section class="blokk"><h2>Kész filmek</h2><div class="panel">'+(kv.length?'':'<div class="ures">Még nincs kész film.</div>');
   function vs(v){var ok=(v.allapot||(/^rendben/.test(v.ellenorzes||'')?'rendben':'hiba'))==='rendben';
