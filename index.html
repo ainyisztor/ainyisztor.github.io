@@ -161,6 +161,18 @@ details[open]>summary::before{content:"−"}
 .munka b{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--halk);font-weight:600}
 .jelmagy{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--halk);margin-top:8px}
 .jelmagy i{display:inline-block;width:3px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+/* levelek (v28) */
+.lv{border-top:1px solid var(--vonal)} .lv:first-child{border-top:0}
+.lv>summary{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;padding:10px 0;min-height:44px;color:var(--tinta);font-weight:400}
+.lv>summary::before{display:none}
+.lv .t{min-width:0;overflow-wrap:anywhere;font-weight:600;font-size:15px}
+.lv .i{font-size:13px;color:var(--halk);white-space:nowrap;text-align:right}
+.lv .r{grid-column:2/-1;font-size:13px;color:var(--halk);margin-top:-2px}
+.lv-tetel{margin:0 0 10px 0;padding:8px 10px;border-left:4px solid var(--vonal);background:var(--lap2);border-radius:0 8px 8px 0;font-size:14px;overflow-wrap:anywhere}
+.lv-tetel.piros{border-left-color:var(--piros)} .lv-tetel.sarga{border-left-color:var(--sarga)} .lv-tetel.zold{border-left-color:var(--zold)}
+.lv-tetel b{display:block;font-size:15px}
+.lv-tetel .m{display:inline-block;margin-top:6px;padding:4px 8px;border-radius:6px;background:var(--sarga-h)}
+.lv-nap{font-size:13px;font-weight:700;color:var(--halk);text-transform:uppercase;letter-spacing:.04em;padding:12px 0 2px}
 /* youtube (v26) */
 .yt-lista{display:grid;gap:8px;padding:12px 0;border-top:1px solid var(--vonal);min-width:0}
 .yt-lista:first-of-type{border-top:0;padding-top:4px}
@@ -208,7 +220,7 @@ a.gomb{text-decoration:none}
 </main>
 <div class="uzen" id="uzen" hidden></div>
 <script>
-// ===== Video feldolgozó dashboard v27 (okt. 23.: YouTube – a gép maga tölt fel, Mehet-kártya, egyszeri engedély; v26: YouTube-feltöltés panel; v25: Tárhely – helyőr panel; v23 okt. 22.: piros–sárga–zöld, „Ezt fogom tenni / Hol járok”, tudástár, beavatkozás) =====
+// ===== Video feldolgozó dashboard v28 (okt. 23.: kiküldött levelek; v27: YouTube – a gép maga tölt fel, Mehet-kártya, egyszeri engedély; v26: YouTube-feltöltés panel; v25: Tárhely – helyőr panel; v23 okt. 22.: piros–sárga–zöld, „Ezt fogom tenni / Hol járok”, tudástár, beavatkozás) =====
 // Két helyen fut ugyanez az oldal: (1) a Google Apps Script webalkalmazásban (google.script.run), (2) önálló tárhelyen
 // (pl. GitHub Pages) – ott a „Stelvio fogadó”-tól kéri az adatot a készüléken eltárolt dashboard-kulccsal.
 var FOGADO = /\.github\.io$/.test(location.hostname) ? 'https://script.google.com/macros/s/AKfycby7Q96vFrG9B0LGjMWPfC2TBTJ0DVBYXY3yWj0lofNfWifKpB419im_tYRepG709ntM/exec' : '';   // önálló tárhelyen (GitHub Pages) a „Stelvio fogadó”-tól kér
@@ -377,6 +389,33 @@ function tarhely(a){
   var ath=(H&&H.athelyezesek)||[];
   if(ath.length)h+='<details><summary>Legutóbbi áthelyezések ('+ath.length+')</summary><ul class="lista">'+ath.map(function(x){return '<li><span class="n">'+esc(x.honnan)+' → '+esc(x.hova)+'<br><span class="kicsi halk">'+tsz(x.GB)+' GB · ellenőrizve</span></span><span class="kicsi halk" style="white-space:nowrap">'+mikor(x.ido)+'</span></li>';}).join('')+'</ul></details>';
   h+='<div class="jelmagy"><span><i style="background:var(--sarga)"></i>sárga határ: áthelyezés indul</span><span><i style="background:var(--piros)"></i>piros: új nagy lépés nem indul</span><span><i style="background:var(--tinta)"></i>vészfék: szünet</span></div>';
+  return h+'</div></section>';
+}
+
+// ===== Kiküldött levelek (v28) – Józsi: „lássuk, milyen leveleket küldött ki a projekt” =====
+var LV_TIPUS={kritikus:['piros','Kritikus'],dontes:['sarga','Döntés'],osszefoglalo:['zold','Összefoglaló']};
+function lvCim(s){return String(s||'').replace(/^[^\wÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/,'').replace(/^Stelvio\s*[–:-]\s*/,'').replace(/^KRITIKUS:\s*/,'');}
+function lvNap(s){var d=ido(s);if(!d)return '';var ma=new Date(),t=new Date(ma);t.setDate(ma.getDate()-1);
+  if(d.toDateString()===ma.toDateString())return 'Ma';if(d.toDateString()===t.toDateString())return 'Tegnap';return HO[d.getMonth()]+' '+d.getDate()+'.';}
+function lvTetel(u,szin){u=u||[];var c=String(u[0]||''),sz=/^DÖNTÉS/.test(c)?'sarga':/^Hibás|^Kevés|^A gép/.test(c)?'piros':/^Korai/.test(c)?'sarga':szin;
+  return '<div class="lv-tetel '+sz+'"><b>'+esc(c)+'</b>'+esc(u[1]||'')+(u[u.length-1]&&u.length>2&&u[u.length-1]!==u[1]?'<br><span class="m">'+esc(u[u.length-1])+'</span>':'')+'</div>';}
+function levelek(a){
+  var L=a.levelek; if(a.vendeg)return '';
+  var h='<section class="blokk"><h2>Kiküldött levelek <span class="db">'+(L&&L.cimzett?esc(L.cimzett):'értesítők')+'</span></h2><div class="panel">';
+  if(!L||!(L.kuldott||[]).length)return h+'<div class="ures">A projekt még nem küldött levelet, vagy a levélnapló a következő 10 percben indul.</div></div></section>';
+  var K=(L.kuldott||[]).slice().reverse(), gy=L.gyujto||[], u=K[0], ut=LV_TIPUS[u.tipus]||LV_TIPUS.osszefoglalo;
+  var mai=K.filter(function(x){return lvNap(x.ido)==='Ma';}), krit=mai.filter(function(x){return x.tipus==='kritikus';}).length;
+  var allapot=krit?'sarga':'zold';
+  h+='<div class="tar-allapot '+allapot+'">'+IKON[allapot]+'<span>Utolsó levél: <b>'+mikor(u.ido)+'</b> – '+esc(lvCim(u.targy).replace(/[:.]\s*$/,''))+'. Ma '+mai.length+' levél'+(krit?', ebből '+krit+' kritikus':'')+'.'+
+     '<br><span class="halk">Következő összefoglaló: '+esc(L.kovetkezo||'7:00 / 19:00')+(gy.length?' · '+gy.length+' tétel gyűlik bele':' · most nincs benne semmi')+'. Kritikus hiba azonnal megy.</span></span></div>';
+  function sor(x){var t=LV_TIPUS[x.tipus]||LV_TIPUS.osszefoglalo,n=(x.tetelek||[]).length;
+    return '<details class="lv"><summary><span class="cimke '+t[0]+'">'+t[1]+'</span><span class="t">'+esc(lvCim(x.targy))+'</span><span class="i">'+mikor(x.ido)+'</span>'+
+      '<span class="r">'+n+' tétel</span></summary>'+(x.tetelek||[]).map(function(v){return lvTetel(v,t[0]);}).join('')+'</details>';}
+  function lista(arr){var out='',nap='';arr.forEach(function(x){var n=lvNap(x.ido);if(n!==nap){nap=n;out+='<div class="lv-nap">'+esc(n)+'</div>';}out+=sor(x);});return out;}
+  h+='<div>'+lista(K.slice(0,8))+'</div>';
+  if(K.length>8)h+='<details><summary>Korábbiak ('+(K.length-8)+')</summary>'+lista(K.slice(8))+'</details>';
+  if(gy.length)h+='<details><summary>Gyűlik a következő összefoglalóba ('+gy.length+')</summary>'+gy.map(function(g){return lvTetel([g[0],(g[1]||'')+(g[2]?' ('+g[2]+')':''),g[3]||''],'zold');}).join('')+'</details>';
+  if(K.some(function(x){return x.visszatoltve;}))h+='<p class="kicsi halk" style="margin:10px 0 0">Az okt. 23. 16:45 előtti leveleket a postafiókból töltöttem vissza; azóta minden levél magától kerül ide.</p>';
   return h+'</div></section>';
 }
 
@@ -557,7 +596,7 @@ function rajzol(a){
     '<div class="k-gombok"><span class="kicsi halk">A következő Claude-munkamenet ezzel kezd.</span><button type="button" class="gomb fo" onclick="uzenetKuld()">Küldés</button></div>'+utasitasAllapot(a,'uzenet','')+'</div></section>';
   var ct=a.claude_teendok||[];
   if(ct.length&&!VENDEG)jobb+='<section class="blokk"><h2>Claude-ra vár <span class="db">'+ct.length+'</span></h2><div class="panel"><ul class="lista">'+ct.map(function(t){return '<li><span class="n"><b>'+esc(t.cim)+'</b>'+(t.megjegyzes?'<br><span class="kicsi halk">„'+esc(t.megjegyzes)+'”</span>':'')+'</span><span class="kicsi halk" style="white-space:nowrap">'+mikor(t.ido)+'</span></li>';}).join('')+'</ul></div></section>';
-  jobb=tarhely(a)+youtube(a)+jobb;
+  jobb=tarhely(a)+youtube(a)+levelek(a)+jobb;
   var kv=(a.kesz_videok||[]).filter(function(v){return v.allapot!=='proba';});
   jobb+='<section class="blokk"><h2>Kész filmek</h2><div class="panel">'+(kv.length?'':'<div class="ures">Még nincs kész film.</div>');
   function vs(v){var ok=(v.allapot||(/^rendben/.test(v.ellenorzes||'')?'rendben':'hiba'))==='rendben';
